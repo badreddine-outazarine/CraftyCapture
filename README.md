@@ -1,54 +1,60 @@
-# Screenshot Chrome Extension
+FullPageCapture Pro/
+│
+├── manifest.json # Extension configuration file
+│
+├── background.js # Background script for extension logic
+│
+├── content.js # Content script injected into web pages
+│
+├── ui.js # (Optional) UI-related functions
+│
+├── styles.css # CSS styles for the extension UI
+│
+├── overlay.html # HTML template for screenshot overlay
+│
+└── images/ # Directory for extension icons
+├── icon16.png
+├── icon19.png
+├── icon38.png
+├── icon48.png
+└── icon128.png
 
-## Description
-This Chrome extension allows users to capture screenshots of the current tab with a single click. It's a simple, lightweight tool designed to streamline the process of taking and saving screenshots directly from your browser.
+Key Files and Their Purposes:
 
-## Features
-- Capture full-page screenshots of the current tab
-- Easy-to-use interface with a single click operation
-- Lightweight and fast
+1. manifest.json
 
-## Installation
-To install this extension for development:
+   - Defines extension metadata, permissions, and script locations
+   - Specifies icon paths and extension configuration
 
-1. Clone this repository or download the source code.
-2. Open Google Chrome and navigate to `chrome://extensions/`.
-3. Enable "Developer mode" by toggling the switch in the top right corner.
-4. Click "Load unpacked" and select the directory containing the extension files.
+2. background.js
 
-## Usage
-1. Click on the extension icon in the Chrome toolbar to capture a screenshot of the current tab.
-2. The screenshot will be displayed in a new tab.
-3. You can then save or copy the screenshot as needed.
+   - Handles extension lifecycle events
+   - Manages screenshot capture process
+   - Communicates with content script
+   - Merges captured screenshots
 
-## Project Structure
-```
-SCREENSHOT APP/
-├── images/
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
-├── lib/
-├── popup/
-│   ├── popup.css
-│   ├── popup.html
-│   └── popup.js
-├── background.js
-├── content.js
-├── manifest.json
-├── offscreen.html
-├── offscreen.js
-├── screenshot.html
-└── screenshot.js
-```
+3. content.js
 
-## Development
-To modify or enhance the extension:
+   - Injected into web pages
+   - Handles DOM manipulation and scrolling
+   - Communicates with background script
+   - Renders screenshot overlay
 
-1. Edit the relevant files (e.g., `background.js` for core functionality, `popup.html` and `popup.js` for UI changes).
-2. After making changes, go to `chrome://extensions/` and click the "Reload" button for this extension.
-3. Test your changes thoroughly.
+4. ui.js (Optional)
 
-## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+   - Contains UI-related functions
+   - May handle overlay creation and user interactions
 
+5. styles.css
+
+   - Defines styles for extension UI elements
+   - Styles for screenshot overlay
+
+6. overlay.html
+
+   - HTML template for displaying the captured screenshot
+   - Used by content.js to render the overlay
+
+7. images/
+   - Contains various sizes of extension icons
+   - Used in manifest.json and for extension visuals
