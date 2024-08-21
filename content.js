@@ -140,18 +140,67 @@ function renderScreenshotOverlay(imageDataURL, filename) {
   `;
   img.setAttribute('draggable', 'true');
 
-  overlay.appendChild(img);
-  document.body.appendChild(overlay);
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = `
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+  `;
 
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      document.body.removeChild(overlay);
-    }
+  // Close (X) button
+  const closeButton = createButton('X', () => {
+    document.body.removeChild(overlay);
   });
+
+  // Download button
+  const downloadButton = createButton('⬇️', () => {
+    const link = document.createElement('a');
+    link.href = imageDataURL;
+    link.download = `${filename}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  // Edit button
+  const editButton = createButton('✏️', () => {
+    console.log('Edit functionality to be implemented');
+    // Placeholder for future edit functionality
+  });
+
+  buttonContainer.appendChild(closeButton);
+  buttonContainer.appendChild(downloadButton);
+  buttonContainer.appendChild(editButton);
+
+  overlay.appendChild(img);
+  overlay.appendChild(buttonContainer);
+  document.body.appendChild(overlay);
 
   img.addEventListener('dragstart', (e) => {
     e.dataTransfer.setData("DownloadURL", `image/png:${filename}.png:${imageDataURL}`);
   });
+}
+
+function createButton(text, onClick) {
+  const button = document.createElement('button');
+  button.textContent = text;
+  button.style.cssText = `
+    background-color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  `;
+  button.addEventListener('click', onClick);
+  return button;
 }
 
 // Initialize the content script

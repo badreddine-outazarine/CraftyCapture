@@ -8,14 +8,29 @@ function renderScreenshotOverlay(imageDataURL, filename) {
         const overlay = doc.body.firstChild;
         const img = overlay.querySelector('#chrome-extension__blipshot-img');
         const dim = overlay.querySelector('#chrome-extension__blipshot-dim');
+        const closeButton = overlay.querySelector('#chrome-extension__blipshot-close');
+        const downloadButton = overlay.querySelector('#chrome-extension__blipshot-download');
+        const editButton = overlay.querySelector('#chrome-extension__blipshot-edit');
         
         img.src = imageDataURL;
-        img.setAttribute('download', `${filename}.png`);
         
         document.body.appendChild(overlay);
         
-        dim.addEventListener('click', () => {
+        closeButton.addEventListener('click', () => {
           document.body.removeChild(overlay);
+        });
+  
+        downloadButton.addEventListener('click', () => {
+          const link = document.createElement('a');
+          link.href = imageDataURL;
+          link.download = `${filename}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+  
+        editButton.addEventListener('click', () => {
+          console.log('Edit functionality to be implemented');
         });
         
         img.addEventListener('dragstart', (e) => {
