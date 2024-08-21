@@ -1,19 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modern Screenshot</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <title>Screenshot App</title>
+  <link rel="stylesheet" type="text/css" href="popup.css">
 </head>
-<body class="bg-gray-100 p-4 w-64">
-  <div class="text-center">
-    <h1 class="text-2xl font-bold mb-4">Screenshot Tool</h1>
-    <button id="captureBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-      Capture Screenshot
-    </button>
-    <p id="status" class="mt-4 text-sm text-gray-600"></p>
-  </div>
+<body>
+  <h1>Screenshot App</h1>
+  <p>Click the button below to capture a full-page screenshot.</p>
+  <button id="captureBtn">Capture Full Page</button>
+  <div class="footer">© 2023 Your Name</div>
   <script src="popup.js"></script>
 </body>
 </html>

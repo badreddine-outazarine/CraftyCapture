@@ -1,37 +1,40 @@
 {
-  "manifest_version": 2,
-  "name": "Full Page Screenshot",
+  "manifest_version": 3,
+  "name": "FullPageCapture Pro",
   "version": "1.0",
-  "description": "Capture full page screenshots",
+  "description": "Capture full-page screenshots with all the bells and whistles",
   "permissions": [
     "activeTab",
-    "tabs",
-    "<all_urls>"
+    "scripting",
+    "downloads"
   ],
+  "action": {
+    "default_icon": {
+      "16": "images/icon16.png",
+      "38": "images/38x38.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js", "ui.js"],
+      "run_at": "document_idle"
     }
   ],
-  "browser_action": {
-    "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
-    },
-    "default_title": "Capture Full Page Screenshot"
-  },
+  "web_accessible_resources": [{
+    "resources": ["overlay.html"],
+    "matches": ["<all_urls>"]
+  }],
   "icons": {
     "16": "images/icon16.png",
+    "19": "images/19x19.png",
+    "38": "images/38x38.png",
     "48": "images/icon48.png",
     "128": "images/icon128.png"
-  },
-  "web_accessible_resources": [
-    "screenshot.html"
-  ]
+  }
 }

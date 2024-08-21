@@ -1,38 +1,158 @@
-(function() {
-    const SCROLL_DELAY = 500;
+const SCROLL_DELAY = 500;
+
+let shared = {};
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("Message received in content script:", request.action);
+  switch (request.action) {
+    case "screenshotBegin":
+      shared = request.shared;
+      screenshotBegin(shared);
+      break;
+    case "screenshotScroll":
+      screenshotScroll(request.shared);
+      break;
+    case "screenshotReturn":
+      screenshotReturn(request.shared);
+      break;
+  }
+  sendResponse({received: true}); // Always send a response
+  return true; // Indicates that the response is sent asynchronously
+});
+
+function screenshotBegin(shared) {
+  const scrollNode = document.scrollingElement || document.documentElement;
+
+  if (scrollNode.scrollHeight > 32766) {
+    alert("Due to Chrome canvas memory limits, the screenshot will be limited to 32766px height.\n\n");
+  }
+
+  shared.originalScrollTop = scrollNode.scrollTop;
+  shared.tab.hasVscrollbar = (window.innerHeight < scrollNode.scrollHeight);
+  scrollNode.scrollTop = 0;
   
-    function screenshotBegin() {
-      var scrollNode = document.scrollingElement || document.documentElement;
-      window.scrollTo(0, 0);
-      setTimeout(function() { 
-        chrome.runtime.sendMessage({ action: 'captureNextArea' });
-      }, SCROLL_DELAY);
-    }
-  
-    function screenshotScroll() {
-      var scrollNode = document.scrollingElement || document.documentElement;
-      var scrollTopBeforeScrolling = window.pageYOffset;
-      
-      window.scrollBy(0, window.innerHeight);
-  
-      if (window.pageYOffset === scrollTopBeforeScrolling || window.innerHeight + window.pageYOffset >= document.documentElement.scrollHeight) {
-        chrome.runtime.sendMessage({ action: 'finishCapture' });
+  // Apply style changes
+  blanketStyleSet('position', 'fixed', 'absolute');
+  blanketStyleSet('position', 'sticky', 'relative');
+
+  setTimeout(() => {
+    chrome.runtime.sendMessage({ action: "screenshotVisibleArea", shared: shared }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error sending screenshotVisibleArea message:", chrome.runtime.lastError);
       } else {
-        setTimeout(function() {
-          chrome.runtime.sendMessage({ action: 'captureNextArea' });
-        }, SCROLL_DELAY);
+        console.log("screenshotVisibleArea message sent successfully");
       }
-    }
-  
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-      switch (request.action) {
-        case "screenshotBegin":
-          screenshotBegin();
-          break;
-        case "screenshotScroll":
-          screenshotScroll();
-          break;
-      }
-      sendResponse(true);
     });
-  })();
+  }, 100);
+}
+
+function screenshotScroll(shared) {
+  const scrollNode = document.scrollingElement || document.documentElement;
+  const scrollTopBeforeScrolling = scrollNode.scrollTop;
+
+  scrollNode.scrollTop += window.innerHeight;
+
+  if (scrollNode.scrollTop == scrollTopBeforeScrolling || scrollNode.scrollTop > 32766) {
+    shared.imageDirtyCutAt = scrollTopBeforeScrolling % window.innerHeight;
+    scrollNode.scrollTop = shared.originalScrollTop;
+    chrome.runtime.sendMessage({ action: "screenshotEnd", shared: shared }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error sending screenshotEnd message:", chrome.runtime.lastError);
+      } else {
+        console.log("screenshotEnd message sent successfully");
+      }
+    });
+  } else {
+    setTimeout(() => {
+      chrome.runtime.sendMessage({ action: "screenshotVisibleArea", shared: shared }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error sending screenshotVisibleArea message:", chrome.runtime.lastError);
+        } else {
+          console.log("screenshotVisibleArea message sent successfully");
+        }
+      });
+    }, SCROLL_DELAY);
+  }
+}
+
+function screenshotReturn(shared) {
+  const d = new Date();
+  const timestamp = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}'${pad2(d.getSeconds())}`;
+  const filename = `pageshot of '${normalizeFileName(shared.tab.title)}' @ ${timestamp}`;
+  
+  renderScreenshotOverlay(shared.imageDataURL, filename);
+
+  // Restore original styles
+  blanketStyleRestore('position');
+}
+
+function pad2(str) {
+  return (str + "").padStart(2, "0");
+}
+
+function normalizeFileName(string) {
+  return string.replace(/[^a-zA-Z0-9_\-+,;'!?$£@&%()\[\]=]/g, " ").replace(/ +/g, " ");
+}
+
+function blanketStyleSet(property, from, to) {
+  const elements = document.getElementsByTagName('*');
+  for (let el of elements) {
+    if (getComputedStyle(el).getPropertyValue(property) === from) {
+      el.style.setProperty(property, to, 'important');
+    }
+  }
+}
+
+function blanketStyleRestore(property) {
+  const elements = document.getElementsByTagName('*');
+  for (let el of elements) {
+    if (el.style.getPropertyValue(property)) {
+      el.style.removeProperty(property);
+    }
+  }
+}
+
+function renderScreenshotOverlay(imageDataURL, filename) {
+  const overlay = document.createElement('div');
+  overlay.id = 'chrome-extension__blipshot-dim';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+  `;
+
+  const img = document.createElement('img');
+  img.id = 'chrome-extension__blipshot-img';
+  img.src = imageDataURL;
+  img.style.cssText = `
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 90%;
+    max-height: 90%;
+    border: 2px solid white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  `;
+  img.setAttribute('draggable', 'true');
+
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      document.body.removeChild(overlay);
+    }
+  });
+
+  img.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData("DownloadURL", `image/png:${filename}.png:${imageDataURL}`);
+  });
+}
+
+// Initialize the content script
+console.log('FullPageCapture Pro content script loaded.');
