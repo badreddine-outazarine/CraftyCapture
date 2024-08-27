@@ -1,6 +1,7 @@
 const SCROLL_DELAY = 500;
 
 let captureData = {};
+let reverse = [];
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Message received in content script:", request.action);
@@ -14,6 +15,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       break;
     case "displayResult":
       displayResult(request.captureData);
+      break;
+    case "heartbeat":
+      sendResponse(true);
       break;
   }
   sendResponse({received: true});
@@ -31,8 +35,8 @@ function initializeCapture(captureData) {
   captureData.tabInfo.hasScrollbar = (window.innerHeight < scrollNode.scrollHeight);
   scrollNode.scrollTop = 0;
   
-  setStyles('position', 'fixed', 'absolute');
-  setStyles('position', 'sticky', 'relative');
+  blanketStyleSet('position', 'fixed', 'absolute');
+  blanketStyleSet('position', 'sticky', 'relative');
 
   setTimeout(() => {
     chrome.runtime.sendMessage({ action: "captureVisibleArea", captureData: captureData }, (response) => {
@@ -78,27 +82,95 @@ function displayResult(captureData) {
   const timestamp = generateTimestamp();
   const filename = `crafty_capture_${normalizeFileName(captureData.tabInfo.title)}_${timestamp}`;
   
-  renderCaptureOverlay(captureData.finalImageURL, filename);
+  renderScreenshotOverlay(captureData.finalImageURL, filename);
 
-  restoreStyles('position');
+  blanketStyleRestore('position');
 }
 
-function setStyles(property, from, to) {
-  const elements = document.getElementsByTagName('*');
-  for (let el of elements) {
-    if (getComputedStyle(el).getPropertyValue(property) === from) {
-      el.style.setProperty(property, to, 'important');
-    }
-  }
+function renderScreenshotOverlay(imageDataURL, filename) {
+  const overlay = document.createElement('div');
+  overlay.id = 'crafty-capture-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    max-width: 90%;
+    max-height: 90%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  `;
+
+  const img = document.createElement('img');
+  img.id = 'crafty-capture-img';
+  img.src = imageDataURL;
+  img.style.cssText = `
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    margin-bottom: 20px;
+  `;
+
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = `
+    display: flex;
+    gap: 10px;
+  `;
+
+  const closeButton = createButton('Close', () => document.body.removeChild(overlay));
+  const downloadButton = createButton('Download', () => {
+    const link = document.createElement('a');
+    link.href = imageDataURL;
+    link.download = `${filename}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  buttonContainer.appendChild(closeButton);
+  buttonContainer.appendChild(downloadButton);
+
+  content.appendChild(img);
+  content.appendChild(buttonContainer);
+  overlay.appendChild(content);
+
+  document.body.appendChild(overlay);
+
+  img.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData("DownloadURL", `image/png:${filename}.png:${imageDataURL}`);
+  });
 }
 
-function restoreStyles(property) {
-  const elements = document.getElementsByTagName('*');
-  for (let el of elements) {
-    if (el.style.getPropertyValue(property)) {
-      el.style.removeProperty(property);
-    }
-  }
+function createButton(text, onClick) {
+  const button = document.createElement('button');
+  button.textContent = text;
+  button.style.cssText = `
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  `;
+  button.addEventListener('click', onClick);
+  return button;
 }
 
 function generateTimestamp() {
@@ -109,6 +181,45 @@ function generateTimestamp() {
 
 function normalizeFileName(string) {
   return string.replace(/[^a-zA-Z0-9_\-+,;'!?$£@&%()\[\]=]/g, " ").replace(/ +/g, " ");
+}
+
+function blanketStyleSet(property, from, to) {
+  var els = document.getElementsByTagName('*');
+  var el;
+  var styles;
+
+  if (property in reverse) {
+    blanketStyleRestore(property);
+  }
+  reverse[property] = [];
+
+  for (var i = 0, l = els.length; i < l; i++) {
+    el = els[i];
+
+    if (from == el.style[property]) {
+      el.style[property] = to;
+      reverse[property].push(function() {
+        this.style[property] = from;
+      }.bind(el));
+    } else {
+      styles = getComputedStyle(el);
+      if (from == styles.getPropertyValue(property)) {
+        el.style[property] = to;
+        reverse[property].push(function(){
+          this.style[property] = from;
+        }.bind(el));
+      }
+    }
+  }
+}
+
+function blanketStyleRestore(property) {
+  var fx;
+
+  while (fx = reverse[property].shift()) {
+    fx();
+  }
+  delete reverse[property];
 }
 
 console.log('Crafty Capture content script loaded.');
