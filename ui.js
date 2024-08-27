@@ -1,3 +1,6 @@
+
+//ui.js
+
 function renderCaptureOverlay(imageDataURL, filename) {
   fetch(chrome.runtime.getURL('overlay.html'))
     .then(response => response.text())
