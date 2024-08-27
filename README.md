@@ -1,4 +1,4 @@
-FullPageCapture Pro/
+Crafty Capture/
 │
 ├── manifest.json # Extension configuration file
 │

@@ -1,17 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "FullPageCapture Pro",
+  "name": "Crafty Capture",
   "version": "1.0",
-  "description": "Capture full-page screenshots with all the bells and whistles",
+  "description": "Capture full page screenshots with ease",
   "permissions": [
     "activeTab",
-    "scripting",
-    "downloads"
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "action": {
     "default_icon": {
       "16": "images/icon16.png",
-      "38": "images/38x38.png",
       "48": "images/icon48.png",
       "128": "images/icon128.png"
     }
@@ -22,14 +23,16 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js", "ui.js"],
-      "run_at": "document_idle"
+      "js": ["content.js", "ui.js", "imageProcessor.js"],
+      "css": ["styles.css"]
     }
   ],
-  "web_accessible_resources": [{
-    "resources": ["overlay.html"],
-    "matches": ["<all_urls>"]
-  }],
+  "web_accessible_resources": [
+    {
+      "resources": ["overlay.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "icons": {
     "16": "images/icon16.png",
     "19": "images/19x19.png",

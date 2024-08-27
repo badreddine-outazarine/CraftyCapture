@@ -1,30 +1,30 @@
-let screenshots = [];
-let currentTab;
-let shared = {
-  imageDirtyCutAt: 0,
-  imageDataURL: null,
-  originalScrollTop: 0,
-  tab: {
+let capturedImages = [];
+let activeTab;
+let captureData = {
+  cutoffPoint: 0,
+  finalImageURL: null,
+  initialScrollPosition: 0,
+  tabInfo: {
     id: 0,
     url: "",
     title: "",
-    hasVscrollbar: false
+    hasScrollbar: false
   }
 };
 
 chrome.action.onClicked.addListener((tab) => {
-  currentTab = tab;
-  shared.tab = {
+  activeTab = tab;
+  captureData.tabInfo = {
     id: tab.id,
     url: tab.url,
     title: tab.title
   };
 
-  chrome.tabs.sendMessage(tab.id, { action: "screenshotBegin", shared: shared }, (response) => {
+  chrome.tabs.sendMessage(tab.id, { action: "initializeCapture", captureData: captureData }, (response) => {
     if (chrome.runtime.lastError) {
-      console.error("Error sending screenshotBegin message:", chrome.runtime.lastError);
+      console.error("Error initializing capture:", chrome.runtime.lastError);
     } else {
-      console.log("screenshotBegin message sent successfully");
+      console.log("Capture initialization message sent successfully");
     }
   });
 });
@@ -32,46 +32,46 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Message received in background:", request.action);
   switch (request.action) {
-    case "screenshotVisibleArea":
-      captureVisibleArea(request.shared);
+    case "captureVisibleArea":
+      performVisibleAreaCapture(request.captureData);
       break;
-    case "screenshotEnd":
-      finalizeScreenshot(request.shared);
+    case "finalizeCapture":
+      completeCaptureProcess(request.captureData);
       break;
   }
   sendResponse({received: true});
   return true;
 });
 
-function captureVisibleArea(shared) {
-  chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+function performVisibleAreaCapture(captureData) {
+  chrome.tabs.captureVisibleTab(null, { format: "png", quality: 100 }, (dataUrl) => {
     if (chrome.runtime.lastError) {
       console.error("Error capturing visible tab:", chrome.runtime.lastError);
       return;
     }
-    screenshots.push(dataUrl);
-    chrome.tabs.sendMessage(currentTab.id, { action: "screenshotScroll", shared: shared }, (response) => {
+    capturedImages.push(dataUrl);
+    chrome.tabs.sendMessage(activeTab.id, { action: "scrollPage", captureData: captureData }, (response) => {
       if (chrome.runtime.lastError) {
-        console.error("Error sending screenshotScroll message:", chrome.runtime.lastError);
+        console.error("Error sending scroll message:", chrome.runtime.lastError);
       } else {
-        console.log("screenshotScroll message sent successfully");
+        console.log("Scroll message sent successfully");
       }
     });
   });
 }
 
-function finalizeScreenshot(shared) {
+function completeCaptureProcess(captureData) {
   chrome.action.setBadgeBackgroundColor({ color: [0, 128, 255, 255] });
-  chrome.action.setBadgeText({ text: "make" });
+  chrome.action.setBadgeText({ text: "..." });
 
-  mergeScreenshots(screenshots, shared.imageDirtyCutAt, shared.tab.hasVscrollbar)
+  mergeImages(capturedImages, captureData.cutoffPoint, captureData.tabInfo.hasScrollbar)
     .then(result => {
-      shared.imageDataURL = result;
-      chrome.tabs.sendMessage(currentTab.id, { action: "screenshotReturn", shared: shared }, (response) => {
+      captureData.finalImageURL = result;
+      chrome.tabs.sendMessage(activeTab.id, { action: "displayResult", captureData: captureData }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error("Error sending screenshotReturn message:", chrome.runtime.lastError);
+          console.error("Error sending display result message:", chrome.runtime.lastError);
         } else {
-          console.log("screenshotReturn message sent successfully");
+          console.log("Display result message sent successfully");
         }
       });
       
@@ -82,15 +82,15 @@ function finalizeScreenshot(shared) {
       }, 3000);
     })
     .catch(error => {
-      console.error("Error in finalizeScreenshot:", error);
+      console.error("Error in completeCaptureProcess:", error);
       chrome.action.setBadgeBackgroundColor({ color: [255, 0, 0, 255] });
       chrome.action.setBadgeText({ text: "!" });
     });
 
-  screenshots = [];
+  capturedImages = [];
 }
 
-async function mergeScreenshots(imageDataURLs, imageDirtyCutAt, hasVscrollbar) {
+async function mergeImages(imageDataURLs, cutoffPoint, hasScrollbar) {
   try {
     const imageBitmaps = await Promise.all(imageDataURLs.map(async dataUrl => {
       const response = await fetch(dataUrl);
@@ -99,12 +99,11 @@ async function mergeScreenshots(imageDataURLs, imageDirtyCutAt, hasVscrollbar) {
     }));
 
     const totalHeight = imageBitmaps.reduce((sum, img, index) => {
-      return sum + (index === imageBitmaps.length - 1 ? imageDirtyCutAt : img.height);
+      return sum + (index === imageBitmaps.length - 1 ? cutoffPoint : img.height);
     }, 0);
 
     const canvas = new OffscreenCanvas(
-      imageBitmaps[0].width - (hasVscrollbar ? 15 :
-0),
+      imageBitmaps[0].width - (hasScrollbar ? 15 : 0),
       Math.min(totalHeight, 32766)
     );
     const ctx = canvas.getContext('2d');
@@ -112,7 +111,7 @@ async function mergeScreenshots(imageDataURLs, imageDirtyCutAt, hasVscrollbar) {
     let y = 0;
     imageBitmaps.forEach((img, index) => {
       const isLastImage = index === imageBitmaps.length - 1;
-      const height = isLastImage ? imageDirtyCutAt : img.height;
+      const height = isLastImage ? cutoffPoint : img.height;
       ctx.drawImage(img, 0, 0, canvas.width, height, 0, y, canvas.width, height);
       y += height;
     });
@@ -125,11 +124,9 @@ async function mergeScreenshots(imageDataURLs, imageDirtyCutAt, hasVscrollbar) {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Error in mergeScreenshots:", error);
+    console.error("Error in mergeImages:", error);
     throw error;
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('FullPageCapture Pro extension installed.');
-});
+console.log('Crafty Capture extension loaded.');
