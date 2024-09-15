@@ -1,37 +1,47 @@
 {
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "name": "__MSG_name__",
+  "description": "__MSG_description__",
+  "short_name": "__MSG_short_name__",
+  "version": "1.0.9",
+  "default_locale": "en",
+  "offline_enabled": true,
   "manifest_version": 3,
-  "name": "Crafty Capture",
-  "version": "1.2",
-  "description": "Capture full page screenshots with ease",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
-  "action": {
-    "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
-    },
-    "default_title": "Capture Full Page Screenshot"
+  "icons": {
+    "16": "/images/icons/icon16.png",
+    "32": "/images/icons/icon32.png",
+    "48": "/images/icons/icon48.png",
+    "128": "/images/icons/icon128.png"
   },
+  
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "/js/background.js"
   },
+  "permissions": ["storage", "unlimitedStorage", "scripting"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_end"
+      "js": [
+        "/js/lib/fabric.js",
+        "/js/lib/jquery-3.2.1.min.js",
+        "/js/contentScript.js",
+        "/js/share-modal.js"
+      ],
+      "css": ["/css/share-modal.css"],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
-  "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
-  }
+  "action": {
+    "default_icon": "images/icons/icon128.png",
+    "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["/css/injectable.css", "editor.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "host_permissions": ["<all_urls>"]
 }

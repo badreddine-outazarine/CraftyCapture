@@ -1,0 +1,32 @@
+{
+    "name": {
+        "message": "Snímka obrazovky a nahrávač obrazovky - Screenshot"
+    },
+    "description": {
+        "message": "Inovatívny nástroj na snímanie obrazovky umožňuje používateľom snímať a upravovať snímky obrazovky. Snímanie obrazovky celej strany."
+    },
+    "short_name": {
+        "message": "Full Page ScreenShot"
+    },
+    "popupDesc1": {
+        "message": "Screenshot will open in a new tab after completion!"
+    },
+    "popupDesc2": {
+        "message": "Failed to take a screenshot! Try reloading the page."
+    },
+    "popupDesc3": {
+        "message": "Cannot take a screenshot of this type due to Google Chrome policy. Try another page in your browser."
+    },
+    "rateDialogNo": {
+        "message": "Maybe next time"
+    },
+    "rateDialogTitle": {
+        "message": "Useful App for you?"
+    },
+    "rateDialogYes": {
+        "message": "OK, sure"
+    },
+    "rateDialogDesc": {
+        "message": "Would you mind rating us on the Chrome Web Store? Thank you!"
+    }
+}
